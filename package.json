@@ -23,9 +23,13 @@
     "test:watch": "jest --watch --notify --notifyMode=change --coverage"
   },
   "dependencies": {
+    "@octokit/webhooks": "^7.6.4",
+    "@probot/serverless-lambda": "^0.5.0",
+    "got": "^11.3.0",
     "probot": "^9.5.3"
   },
   "devDependencies": {
+    "@types/got": "^9.6.11",
     "@types/jest": "^25.1.0",
     "@types/nock": "^11.1.0",
     "@types/node": "^13.1.0",
