@@ -1,6 +1,3 @@
-export const JANDI_WEBHOOK_URL = process.env.JANDI_WEBHOOK_URL;
-export const MAP_FILE_URL = process.env.MAP_FILE_URL;
-
 function checkEnvironment(name: string) {
   const env = process.env[name];
 
@@ -16,5 +13,8 @@ export default {
   },
   get MAP_FILE_URL() {
     return checkEnvironment('MAP_FILE_URL');
+  },
+  get ADMIN_JANDI_EMAIL() {
+    return checkEnvironment('ADMIN_JANDI_EMAIL');
   }
 }
