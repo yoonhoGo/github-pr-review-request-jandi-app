@@ -1,4 +1,4 @@
 import { serverless } from '@probot/serverless-lambda';
-const appFn = require('../');
+import appFn = require('../src');
 
 exports.handler = serverless(appFn)
