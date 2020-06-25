@@ -6,15 +6,19 @@ import {
   ContextPayload,
 } from "../hanlder/requested-review-handler";
 import config from "../config/environments";
+import { errorHandler } from "../hanlder/error-hanlder";
 
-function requestToReviewer(
+async function requestToReviewer(
   reviewer: Octokit.PullsListResponseItemRequestedReviewersItem,
   payload: Omit<ContextPayload, "requested_reviewer">
 ) {
-  return requestReview({
+  const mergedPayload = {
     ...payload,
     requested_reviewer: reviewer,
-  });
+  };
+  return requestReview(mergedPayload).catch((err) =>
+    errorHandler(err, mergedPayload)
+  );
 }
 
 function requestEachReviewers(
@@ -24,7 +28,7 @@ function requestEachReviewers(
   const prPayload = {
     number: pullRequest.number,
     action: context.payload.action,
-    pull_request: pullRequest as any as Webhooks.WebhookPayloadPullRequestPullRequest,
+    pull_request: (pullRequest as any) as Webhooks.WebhookPayloadPullRequestPullRequest,
     repository: context.payload.repository,
     sender: pullRequest.assignee || pullRequest.user,
   };
@@ -56,9 +60,11 @@ export default (robot: Application) => {
       // this event is triggered on an interval, which is 1 hr by default
       const pulls = await getOpenedPulls(context);
 
-      pulls.data.map((pullRequest) =>
-        requestEachReviewers(pullRequest, context)
+      const requestsMap = pulls.data.map((pullRequest) =>
+        Promise.all(requestEachReviewers(pullRequest, context))
       );
+
+      Promise.all(requestsMap);
     }
   );
 };

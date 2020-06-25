@@ -1,11 +1,18 @@
-import { Context } from "probot";
 import Webhooks from "@octokit/webhooks";
 import * as jandiWebhook from "../service/jandi-webhook";
 import config from "../config/environments";
 
+export type ContextPayload = {
+  number: number;
+  repository: Webhooks.PayloadRepository;
+  pull_request: Webhooks.WebhookPayloadPullRequestPullRequest;
+  sender: Webhooks.WebhookPayloadPullRequestSender;
+  requested_reviewer: Webhooks.WebhookPayloadPullRequestReviewPullRequestUser;
+};
+
 export function errorHandler(
   err: Error,
-  context: Context<Webhooks.WebhookPayloadPullRequest>
+  payload: ContextPayload,
 ) {
   const template: jandiWebhook.JandiPayload = {
     body: "PR Review Request 실패",
@@ -17,7 +24,7 @@ export function errorHandler(
       },
       {
         title: "context",
-        description: JSON.stringify(context.payload),
+        description: JSON.stringify(payload),
       },
     ],
     email: config.ADMIN_JANDI_EMAIL,
