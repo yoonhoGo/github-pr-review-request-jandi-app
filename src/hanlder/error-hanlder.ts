@@ -30,5 +30,7 @@ export function errorHandler(
     email: config.ADMIN_JANDI_EMAIL,
   };
 
+  console.error(err);
+
   jandiWebhook.send(template);
 }

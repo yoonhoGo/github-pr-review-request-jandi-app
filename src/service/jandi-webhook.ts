@@ -21,7 +21,7 @@ export interface JandiPayload {
 }
 
 export async function send(payload: JandiPayload) {
-  if (!payload.email) {
+  if (payload.email) {
     await got.post(JANDI_WEBHOOK_URL, {
       headers: JANDI_HEADER,
       json: payload,

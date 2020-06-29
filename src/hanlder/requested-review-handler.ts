@@ -28,30 +28,69 @@ function getEmailMapFile() {
 
 const mapFile = getEmailMapFile();
 
-function setTemplate(
-  // context: Context<Webhook.WebhookPayloadPullRequest>,
-  payload: ContextPayload,
-  email?: string
-): jandiWebhook.JandiPayload {
-  const repositoryInfo: jandiWebhook.ConnectInfo = {
+async function getUser(
+  username: string,
+  field: "name" | "email" = "name"
+): Promise<string | undefined> {
+  const users = await mapFile;
+
+  return users[username]?.[field];
+}
+
+async function makeRepositoryInfo(
+  repository: Webhooks.PayloadRepository
+): Promise<jandiWebhook.ConnectInfo> {
+  return {
     title: "Repository",
-    description: payload.repository.full_name,
+    description: repository.full_name,
   };
-  const reviewers: jandiWebhook.ConnectInfo = {
+}
+
+async function makeReviewersInfo(
+  pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
+): Promise<jandiWebhook.ConnectInfo> {
+  const reviewers = await Promise.all(
+    pullRequest.requested_reviewers.map(
+      async ({ login }) => `@${(await getUser(login)) || login}`
+    )
+  );
+  const reviewersDescription = reviewers.join(", ");
+
+  return {
     title: "Reviewers",
-    description: payload.pull_request.requested_reviewers
-      .map(({ login }) => `@${login}`)
-      .join(", "),
+    description: reviewersDescription,
   };
-  const assignessInfo: jandiWebhook.ConnectInfo = {
+}
+
+async function makeAssignessInfo(
+  sender: Webhooks.WebhookPayloadPullRequestSender
+): Promise<jandiWebhook.ConnectInfo> {
+  const assignee = (await getUser(sender.login)) || sender.login;
+
+  return {
     title: "Assignees",
-    description: payload.sender.login,
-    imageUrl: payload.sender.avatar_url,
+    description: assignee,
+    imageUrl: sender.avatar_url,
   };
-  const prInfo: jandiWebhook.ConnectInfo = {
+}
+
+async function makePRInfo(
+  pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
+): Promise<jandiWebhook.ConnectInfo> {
+  return {
     title: "Pull Request Link",
-    description: payload.pull_request.html_url,
+    description: pullRequest.html_url,
   };
+}
+
+async function setTemplate(
+  email: string,
+  payload: ContextPayload
+): Promise<jandiWebhook.JandiPayload> {
+  const repositoryInfo = await makeRepositoryInfo(payload.repository);
+  const reviewers = await makeReviewersInfo(payload.pull_request);
+  const assignessInfo = await makeAssignessInfo(payload.sender);
+  const prInfo = await makePRInfo(payload.pull_request);
 
   return {
     body: `#${payload.number} ` + payload.pull_request.title,
@@ -77,10 +116,15 @@ export type ContextPayload = {
 
 export async function requestReview(payload: ContextPayload) {
   const requestedReviewer = payload.requested_reviewer;
-  const bbrosEmail = await mapFile.then(
-    (list) => list[requestedReviewer.login]?.email
-  );
-  const template = setTemplate(payload, bbrosEmail);
-  
+  const bbrosEmail = await getUser(requestedReviewer.login, "email");
+
+  if (!bbrosEmail) {
+    return;
+  }
+
+  const template = await setTemplate(bbrosEmail, payload);
+
+  console.log("template", template);
+
   return jandiWebhook.send(template);
 }
